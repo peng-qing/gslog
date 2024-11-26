@@ -88,3 +88,6 @@ func (l *Logger) FatalContext(ctx context.Context, msg string, args ...any) {
 
 func (l *Logger) log(ctx context.Context, level LogLevel, msg string, args ...any) {
 }
+
+func (l *Logger) logFields(ctx context.Context, level LogLevel, msg string, args ...LogField) {
+}

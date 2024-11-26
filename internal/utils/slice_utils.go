@@ -18,3 +18,12 @@ func UintSliceToUint64[T uint | uint8 | uint16 | uint32 | uint64](arr []T) []uin
 	}
 	return result
 }
+
+func FloatToFloat64[T float32 | float64](arr []T) []float64 {
+	result := make([]float64, len(arr), len(arr))
+
+	for i, v := range arr {
+		result[i] = float64(v)
+	}
+	return result
+}

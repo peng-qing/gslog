@@ -1,5 +1,10 @@
 package gslog
 
+var (
+	// 检查 optionFunc 是否实现 Options 接口
+	_ Options = (*optionFunc)(nil)
+)
+
 type LogOptions struct {
 	Level LogLevel
 }

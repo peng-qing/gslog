@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"gslog/internal/utils"
 )
 
 type LogFieldValueKind int
@@ -155,19 +157,19 @@ func AnyFieldValue(val any) LogFieldValue {
 	case int:
 		return IntFieldValue(vv)
 	case []int:
-		return Int64ArrayFieldValue()
+		return Int64ArrayFieldValue(utils.IntSliceToInt64[int](vv)...)
 	case int8:
 		return Int64FieldValue(int64(vv))
 	case []int8:
-		return Int64ArrayFieldValue(utils.ConvertIntSliceToInt64s[int8](vv)...)
+		return Int64ArrayFieldValue(utils.IntSliceToInt64[int8](vv)...)
 	case int16:
 		return Int64FieldValue(int64(vv))
 	case []int16:
-		return Int64ArrayFieldValue(utils.ConvertIntSliceToInt64s[int16](vv)...)
+		return Int64ArrayFieldValue(utils.IntSliceToInt64[int16](vv)...)
 	case int32:
 		return Int64FieldValue(int64(vv))
 	case []int32:
-		return Int64ArrayFieldValue(utils.ConvertIntSliceToInt64s[int32](vv)...)
+		return Int64ArrayFieldValue(utils.IntSliceToInt64[int32](vv)...)
 	case int64:
 		return Int64FieldValue(vv)
 	case []int64:
@@ -175,19 +177,19 @@ func AnyFieldValue(val any) LogFieldValue {
 	case uint:
 		return Uint64FieldValue(uint64(vv))
 	case []uint:
-		return Uint64ArrayFieldValue(utils.ConvertUintSliceToUint64s[uint](vv)...)
+		return Uint64ArrayFieldValue(utils.UintSliceToUint64[uint](vv)...)
 	case uint8:
 		return Uint64FieldValue(uint64(vv))
 	case []uint8:
-		return Uint64ArrayFieldValue(utils.ConvertUintSliceToUint64s[uint8](vv)...)
+		return Uint64ArrayFieldValue(utils.UintSliceToUint64[uint8](vv)...)
 	case uint16:
 		return Uint64FieldValue(uint64(vv))
 	case []uint16:
-		return Uint64ArrayFieldValue(utils.ConvertUintSliceToUint64s[uint16](vv)...)
+		return Uint64ArrayFieldValue(utils.UintSliceToUint64[uint16](vv)...)
 	case uint32:
 		return Uint64FieldValue(uint64(vv))
 	case []uint32:
-		return Uint64ArrayFieldValue(utils.ConvertUintSliceToUint64s[uint32](vv)...)
+		return Uint64ArrayFieldValue(utils.UintSliceToUint64[uint32](vv)...)
 	case uint64:
 		return Uint64FieldValue(vv)
 	case []uint64:
@@ -195,7 +197,7 @@ func AnyFieldValue(val any) LogFieldValue {
 	case float32:
 		return Float64FieldValue(float64(vv))
 	case []float32:
-		return Float64ArrayFieldValue(utils.ConvertFloatSliceToFloat64s(vv)...)
+		return Float64ArrayFieldValue(utils.FloatToFloat64(vv)...)
 	case float64:
 		return Float64FieldValue(vv)
 	case []float64:
@@ -221,4 +223,161 @@ func AnyFieldValue(val any) LogFieldValue {
 	default:
 		return LogFieldValue{kind: LogFieldValueAny, value: val}
 	}
+}
+
+// Kind 获取存储的具体值类型
+func (l LogFieldValue) Kind() LogFieldValueKind {
+	return l.kind
+}
+
+func (l LogFieldValue) Int64() int64 {
+	if current, target := l.Kind(), LogFieldValueInt64; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+
+	return l.value.(int64)
+}
+
+func (l LogFieldValue) Int64s() []int64 {
+	if current, target := l.Kind(), LogFieldValueInt64s; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]int64)
+}
+
+func (l LogFieldValue) Uint64() uint64 {
+	if current, target := l.Kind(), LogFieldValueUint64; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(uint64)
+}
+
+func (l LogFieldValue) Uint64s() []uint64 {
+	if current, target := l.Kind(), LogFieldValueUint64s; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]uint64)
+}
+
+func (l LogFieldValue) Float64() float64 {
+	if current, target := l.Kind(), LogFieldValueFloat64; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(float64)
+}
+
+func (l LogFieldValue) Float64s() []float64 {
+	if current, target := l.Kind(), LogFieldValueFloat64s; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]float64)
+}
+
+// String never panic
+func (l LogFieldValue) String() string {
+	if current, target := l.Kind(), LogFieldValueString; current == target {
+		return l.value.(string)
+	}
+
+	buffer := make([]byte, 0)
+	return string(l.appendFieldValue(buffer))
+}
+
+func (l LogFieldValue) Strings() []string {
+	if current, target := l.Kind(), LogFieldValueStrings; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]string)
+}
+
+func (l LogFieldValue) Bool() bool {
+	if current, target := l.Kind(), LogFieldValueBool; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(bool)
+}
+
+func (l LogFieldValue) Bools() []bool {
+	if current, target := l.Kind(), LogFieldValueBools; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]bool)
+}
+
+func (l LogFieldValue) Time() time.Time {
+	if current, target := l.Kind(), LogFieldValueTime; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(time.Time)
+}
+
+func (l LogFieldValue) Duration() time.Duration {
+	if current, target := l.Kind(), LogFieldValueDuration; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(time.Duration)
+}
+
+func (l LogFieldValue) Field() LogField {
+	if current, target := l.Kind(), LogFieldValueField; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(LogField)
+}
+
+func (l LogFieldValue) Fields() []LogField {
+	if current, target := l.Kind(), LogFieldValueFields; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.([]LogField)
+}
+
+func (l LogFieldValue) Error() error {
+	if current, target := l.Kind(), LogFieldValueError; current != target {
+		panic(fmt.Sprintf("current FieldValueKind is %s, not %s", kindStrings[current], kindStrings[target]))
+	}
+	return l.value.(error)
+}
+
+func (l LogFieldValue) Any() any {
+	switch l.Kind() {
+	case LogFieldValueAny:
+		return l.value
+	case LogFieldValueInt64:
+		return l.Int64()
+	case LogFieldValueInt64s:
+		return l.Int64s()
+	case LogFieldValueUint64:
+		return l.Uint64()
+	case LogFieldValueUint64s:
+		return l.Uint64s()
+	case LogFieldValueFloat64:
+		return l.Float64()
+	case LogFieldValueFloat64s:
+		return l.Float64s()
+	case LogFieldValueString:
+		return l.String()
+	case LogFieldValueStrings:
+		return l.Strings()
+	case LogFieldValueBool:
+		return l.Bool()
+	case LogFieldValueBools:
+		return l.Bools()
+	case LogFieldValueTime:
+		return l.Time()
+	case LogFieldValueDuration:
+		return l.Duration()
+	case LogFieldValueField:
+		return l.Field()
+	case LogFieldValueFields:
+		return l.Fields()
+	case LogFieldValueError:
+		return l.Error()
+	default:
+		panic(fmt.Sprintf("unknown kind %s", l.Kind()))
+	}
+}
+
+func (l LogFieldValue) appendFieldValue(dst []byte) []byte {
+	return nil
 }
