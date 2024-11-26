@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -14,8 +13,6 @@ const (
 var (
 	// 检查 Buffer 实现 io.Writer
 	_ io.Writer = (*Buffer)(nil)
-	// 检查 Buffer 实现 fmt.Stringer
-	_ fmt.Stringer = (*Buffer)(nil)
 	// 检查 Buffer 实现 io.ByteWriter
 	_ io.ByteWriter = (*Buffer)(nil)
 	// 检查 Buffer 实现 io.StringWriter
