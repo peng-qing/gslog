@@ -3,8 +3,6 @@ package gslog
 import (
 	"runtime"
 	"time"
-
-	"gslog/internal/define"
 )
 
 type LogEntry struct {
@@ -54,10 +52,10 @@ func (l *LogEntry) argsToLogFields(args ...any) (LogField, []any) {
 		return vv, args[1:]
 	case string:
 		if len(args) <= 1 {
-			return String[string](define.BadFieldsKey, vv), nil
+			return String[string](badFieldsKey, vv), nil
 		}
 		return Any(vv, args[1:]), args[2:]
 	default:
-		return Any(define.BadFieldsKey, vv), args[1:]
+		return Any(badFieldsKey, vv), args[1:]
 	}
 }

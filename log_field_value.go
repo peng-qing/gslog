@@ -220,6 +220,8 @@ func AnyFieldValue(val any) LogFieldValue {
 		return FieldArrayFieldValue(vv...)
 	case error:
 		return ErrorFieldValue(vv)
+	case fmt.Stringer:
+		return StringFieldValue(vv.String())
 	default:
 		return LogFieldValue{kind: LogFieldValueAny, value: val}
 	}
