@@ -99,12 +99,12 @@ type TextHandler struct {
 }
 
 // NewTextHandler 创建文本日志处理器
-func NewTextHandler(writeSyncer WriteSyncer, opts ...Options) (*TextHandler, error) {
+func NewTextHandler(writeSyncer WriteSyncer, opts ...Options) *TextHandler {
 	instance := &TextHandler{
 		commonHandler: newCommonHandler(writeSyncer, opts...),
 	}
 
-	return instance, nil
+	return instance
 }
 
 func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {

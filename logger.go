@@ -142,3 +142,8 @@ func (l *Logger) logFields(ctx context.Context, level LogLevel, msg string, args
 func (l *Logger) Close() error {
 	return l.handler.Close()
 }
+
+// Sync 同步日志
+func (l *Logger) Sync() error {
+	return l.handler.Sync()
+}
