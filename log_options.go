@@ -72,3 +72,10 @@ func WithLayout(layout string) Options {
 		logOptions.Layout = layout
 	})
 }
+
+// WithJsonConf 设置Json配置
+func WithJsonConf(conf *JSONOptions) Options {
+	return optionFunc(func(logOptions *LogOptions) {
+		logOptions.JSONConf = conf
+	})
+}
