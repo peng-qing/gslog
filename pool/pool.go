@@ -19,7 +19,7 @@ func NewPool[T any](fn func() T) *Pool[T] {
 
 // Get 对象池获取一个对象
 func (p *Pool[T]) Get() T {
-	return p.pool.Get()
+	return p.pool.Get().(T)
 }
 
 // Put 返回对象池

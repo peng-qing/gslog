@@ -82,7 +82,7 @@ func (b *Buffer) String() string {
 
 // Reset 重置缓冲区
 func (b *Buffer) Reset() {
-	b.buf = b.buf[0:]
+	b.buf = b.buf[:0]
 }
 
 // Write 实现 io.Writer

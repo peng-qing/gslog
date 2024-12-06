@@ -38,7 +38,7 @@ type commonHandler struct {
 }
 
 // newCommonHandler 实例化commonHandler方法 基类 不对外
-func newCommonHandler(writeSyncer WriteSyncer, opts ...Options) *commonHandler {
+func newCommonHandlerWithOptions(writeSyncer WriteSyncer, opts ...Options) *commonHandler {
 	logOptions := &LogOptions{}
 
 	for _, optFunc := range opts {
@@ -48,6 +48,17 @@ func newCommonHandler(writeSyncer WriteSyncer, opts ...Options) *commonHandler {
 	return &commonHandler{
 		writeSyncer: writeSyncer,
 		options:     logOptions,
+	}
+}
+
+// newCommonHandler 实例化commonHandler方法 基类 不对外
+func newCommonHandler(writeSyncer WriteSyncer, options *LogOptions) *commonHandler {
+	if options == nil {
+		options = &LogOptions{}
+	}
+	return &commonHandler{
+		writeSyncer: writeSyncer,
+		options:     options,
 	}
 }
 
@@ -61,7 +72,7 @@ func (c *commonHandler) Enabled(ctx context.Context, level LogLevel) bool {
 		return level >= InfoLevel
 	}
 
-	return c.options.Level >= level
+	return c.options.Level <= level
 }
 
 // LogRecord 写入日志
@@ -98,10 +109,19 @@ type TextHandler struct {
 	*commonHandler
 }
 
-// NewTextHandler 创建文本日志处理器
-func NewTextHandler(writeSyncer WriteSyncer, opts ...Options) *TextHandler {
+// NewTextHandlerWithOptions 创建文本日志处理器
+func NewTextHandlerWithOptions(writeSyncer WriteSyncer, opts ...Options) *TextHandler {
 	instance := &TextHandler{
-		commonHandler: newCommonHandler(writeSyncer, opts...),
+		commonHandler: newCommonHandlerWithOptions(writeSyncer, opts...),
+	}
+
+	return instance
+}
+
+// NewTextHandler 创建文本日志处理器
+func NewTextHandler(writeSyncer WriteSyncer, options *LogOptions) *TextHandler {
+	instance := &TextHandler{
+		commonHandler: newCommonHandler(writeSyncer, options),
 	}
 
 	return instance
@@ -112,15 +132,15 @@ func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 	defer buffer.Free()
 
 	// 前缀
-	if t.options.TextConf.TextPrefix != "" {
+	if t.options.TextPrefix != "" {
 		buffer.AppendByte(serializePrefixBegin)
-		buffer.AppendString(t.options.TextConf.TextPrefix)
+		buffer.AppendString(t.options.TextPrefix)
 		buffer.AppendByte(serializePrefixEnd)
 		buffer.AppendByte(serializeSpaceSplit)
 		// <prefix><space>
 	}
 	// 时间
-	if !entry.Time.IsZero() && t.options.TextConf.TextFlag&LTextTime != 0 {
+	if !entry.Time.IsZero() && t.options.TextFlag&LTextTime != 0 {
 		layout := t.options.Layout
 		if layout == "" {
 			layout = DefaultTimeLayout
@@ -130,12 +150,12 @@ func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 		// <prefix> 2006/01/02 15:04:05.000000<space>
 	}
 	// LogLevel
-	if t.options.TextConf.TextFlag&lCheckLogLevel != 0 {
+	if t.options.TextFlag&lCheckLogLevel != 0 {
 		logLevel := entry.Level
 		buffer.AppendByte(serializeArrayBegin)
-		if t.options.TextConf.TextFlag&LTextLogLevel != 0 {
+		if t.options.TextFlag&LTextLogLevel != 0 {
 			buffer.AppendString(logLevel.CapitalString())
-		} else if t.options.TextConf.TextFlag&LTextLogLevelUpCase != 0 {
+		} else if t.options.TextFlag&LTextLogLevelUpCase != 0 {
 			buffer.AppendString(logLevel.UpCaseString())
 		} else {
 			buffer.AppendString(logLevel.LowCaseString())
@@ -145,9 +165,9 @@ func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 		// <prefix> 2006/01/02 15:04:05.000000 [Level]<space>
 	}
 	// File/Function
-	if t.options.TextConf.TextFlag&lCheckShortFile != 0 {
+	if t.options.TextFlag&lCheckShortFile != 0 {
 		file, line, function := entry.Source()
-		if t.options.TextConf.TextFlag&LTextFile != 0 {
+		if t.options.TextFlag&LTextFile != 0 {
 			if file == "" {
 				file = unknownFile
 			}
@@ -157,7 +177,7 @@ func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 			buffer.AppendByte(serializeSpaceSplit)
 			// <prefix> 2006/01/02 15:04:05.000000 [Level] file:line<space>
 		}
-		if t.options.TextConf.TextFlag&LTextFunction != 0 {
+		if t.options.TextFlag&LTextFunction != 0 {
 			buffer.AppendString(function)
 			buffer.AppendByte(serializeSpaceSplit)
 			// <prefix> 2006/01/02 15:04:05.000000 [Level] file:line function<space>
@@ -180,6 +200,10 @@ func (t *TextHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 		buffer.AppendByte(serializeSpaceSplit)
 		//  <prefix> 2024/06/11 10:00:00.000000 [Info] file:line function<space>message fieldKey=fieldValue...<space>
 	}
+	// new line
+	buffer.AppendByte(serializeNewLine)
+
+	fmt.Println(buffer.String())
 
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
@@ -192,10 +216,18 @@ type JsonHandler struct {
 	*commonHandler
 }
 
-// NewJsonHandler 实例化 JsonHandler
-func NewJsonHandler(writeSyncer WriteSyncer, opts ...Options) *JsonHandler {
+// NewJsonHandlerWithOptions 实例化 JsonHandler
+func NewJsonHandlerWithOptions(writeSyncer WriteSyncer, opts ...Options) *JsonHandler {
 	instance := &JsonHandler{
-		newCommonHandler(writeSyncer, opts...),
+		newCommonHandlerWithOptions(writeSyncer, opts...),
+	}
+	return instance
+}
+
+// NewJsonHandler 实例化 JsonHandler
+func NewJsonHandler(writeSyncer WriteSyncer, options *LogOptions) *JsonHandler {
+	instance := &JsonHandler{
+		newCommonHandler(writeSyncer, options),
 	}
 	return instance
 }
@@ -215,7 +247,7 @@ func (j *JsonHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 		if layout == "" {
 			layout = DefaultTimeLayout
 		}
-		key := j.options.JSONConf.TimeEncodeKey
+		key := j.options.TimeEncodeKey
 		if key == "" {
 			key = defaultJsonTimeKey
 		}
@@ -224,7 +256,7 @@ func (j *JsonHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 	}
 	// source
 	{
-		key := j.options.JSONConf.SourceEncodeKey
+		key := j.options.SourceEncodeKey
 		if key == "" {
 			key = defaultJsonSourceKey
 		}
@@ -235,7 +267,7 @@ func (j *JsonHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 	}
 	// 日志级别
 	{
-		key := j.options.JSONConf.SourceEncodeKey
+		key := j.options.SourceEncodeKey
 		if key == "" {
 			key = defaultJsonLevelKey
 		}
@@ -244,7 +276,7 @@ func (j *JsonHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 	}
 	// Message
 	{
-		key := j.options.JSONConf.SourceEncodeKey
+		key := j.options.SourceEncodeKey
 		if key == "" {
 			key = defaultJsonMessageKey
 		}
@@ -253,7 +285,7 @@ func (j *JsonHandler) LogRecord(_ context.Context, entry *LogEntry) error {
 	}
 	// fields...
 	{
-		key := j.options.JSONConf.FieldEncodeKey
+		key := j.options.FieldEncodeKey
 		if key == "" {
 			key = defaultJsonFieldsKey
 		}
@@ -300,7 +332,7 @@ func (j *JsonHandler) appendJsonValue(buffer *pool.Buffer, val any) {
 	switch vv := val.(type) {
 	case time.Time:
 		buffer.AppendByte(serializeStringMarks)
-		layout := j.options.JSONConf.TimeEncodeKey
+		layout := j.options.TimeEncodeKey
 		if layout == "" {
 			layout = DefaultTimeLayout
 		}

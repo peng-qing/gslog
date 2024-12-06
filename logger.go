@@ -111,7 +111,7 @@ func (l *Logger) log(ctx context.Context, level LogLevel, msg string, args ...an
 	// runtime.Callers. this function, this function's Caller
 	runtime.Callers(3, pcs[:])
 	entry := NewLogEntry(time.Now(), level, msg, pcs[0])
-	entry.AddArgs(args)
+	entry.AddArgs(args...)
 
 	if ctx == nil {
 		ctx = context.Background()

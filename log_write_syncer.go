@@ -67,19 +67,21 @@ func (s sortableLogFileMeta) Swap(i, j int) {
 
 // LogFileRollover 文件日志轮转
 type LogFileRollover struct {
+	// 文件名
+	Filename string
+	// 单位MB
+	MaxSize int
+	// 旧日志保留数量
+	MaxBackups int
+	// 日志保存时间 天(24h)
+	MaxAge int
+	// 是否执行压缩
+	// 压缩后会被添加 .gz 后缀
+	Compress bool
 	// 源文件 通过日志分割器的日志会被追加到该文件
 	// 如果初始长度超出 MaxSize 会被切割并重命名加上当前时间信息
 	// 然后会使用原始文件名创建一个新日志文件
 	file *os.File
-	// 单位MB
-	maxSize int
-	// 旧日志保留数量
-	maxBackups int
-	// 日志保存时间 天(24h)
-	maxAge int
-	// 是否执行压缩
-	// 压缩后会被添加 .gz 后缀
-	compress bool
 	// 当前文件大小
 	size int64
 	// 锁
@@ -93,13 +95,13 @@ type LogFileRollover struct {
 }
 
 // NewLogFileRollover 实例化 LogFileRollover
-func NewLogFileRollover(file *os.File, maxSize int, maxBackups int, maxAge int, compress bool) *LogFileRollover {
+func NewLogFileRollover(filename string, maxSize int, maxBackups int, maxAge int, compress bool) *LogFileRollover {
 	return &LogFileRollover{
-		file:       file,
-		maxSize:    maxSize,
-		maxBackups: maxBackups,
-		maxAge:     maxAge,
-		compress:   compress,
+		Filename:   filename,
+		MaxSize:    maxSize,
+		MaxBackups: maxBackups,
+		MaxAge:     maxAge,
+		Compress:   compress,
 	}
 }
 
@@ -161,16 +163,16 @@ func (l *LogFileRollover) Sync() error {
 
 // maxFileSize 最大文件大小
 func (l *LogFileRollover) maxFileSize() int64 {
-	if l.maxSize != 0 {
-		return int64(l.maxSize * megaByte)
+	if l.MaxSize != 0 {
+		return int64(l.MaxSize * megaByte)
 	}
 	return defaultSize
 }
 
 // filename 获取正在写入日志文件名
 func (l *LogFileRollover) filename() string {
-	if l.file != nil {
-		return l.file.Name()
+	if l.Filename != "" {
+		return l.Filename
 	}
 
 	// 默认路径 ${tmp_dir}/${project}-gs_rollover.log
@@ -303,7 +305,7 @@ func (l *LogFileRollover) run() {
 
 // rolloverExec 执行文件轮转
 func (l *LogFileRollover) rolloverExec() error {
-	if l.maxAge == 0 && l.maxBackups == 0 && !l.compress {
+	if l.MaxAge == 0 && l.MaxBackups == 0 && !l.Compress {
 		return nil
 	}
 
@@ -316,7 +318,7 @@ func (l *LogFileRollover) rolloverExec() error {
 	// 需要被删除的数据
 	removed := make([]*LogFileMeta, 0)
 	// 移除超出备份数量的日志
-	if l.maxBackups > 0 && len(logFileMetas) >= l.maxBackups {
+	if l.MaxBackups > 0 && len(logFileMetas) >= l.MaxBackups {
 		savedSet := make(map[string]struct{})
 		remained := make([]*LogFileMeta, 0)
 		for _, logFileMeta := range logFileMetas {
@@ -325,7 +327,7 @@ func (l *LogFileRollover) rolloverExec() error {
 				filename = strings.TrimSuffix(filename, compressSuffix)
 			}
 			// 超出上限
-			if len(savedSet) > l.maxBackups {
+			if len(savedSet) > l.MaxBackups {
 				removed = append(removed, logFileMeta)
 				continue
 			}
@@ -338,10 +340,10 @@ func (l *LogFileRollover) rolloverExec() error {
 	}
 
 	// 移除到期
-	if l.maxAge > 0 {
+	if l.MaxAge > 0 {
 		remained := make([]*LogFileMeta, 0)
 		// 截止时间
-		diff := time.Duration(int64(24*l.maxAge) * int64(time.Hour))
+		diff := time.Duration(int64(24*l.MaxAge) * int64(time.Hour))
 		cutOffTime := time.Now().Add(-1 * diff)
 		for _, logFileMeta := range logFileMetas {
 			// 早于截止时间 删除
@@ -364,7 +366,7 @@ func (l *LogFileRollover) rolloverExec() error {
 	}
 
 	// 压缩
-	if l.compress {
+	if l.Compress {
 		for _, logFileMeta := range logFileMetas {
 			if strings.HasSuffix(logFileMeta.FileInfo.Name(), compressSuffix) {
 				continue

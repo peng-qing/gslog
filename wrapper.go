@@ -14,7 +14,7 @@ var (
 
 func init() {
 	once.Do(func() {
-		defaultLogger.Store(NewLogger(NewTextHandler(os.Stdout)))
+		defaultLogger.Store(NewLogger(NewTextHandlerWithOptions(os.Stdout)))
 	})
 }
 

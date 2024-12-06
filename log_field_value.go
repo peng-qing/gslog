@@ -3,8 +3,11 @@ package gslog
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	"gslog/internal/bufferPool"
 	"gslog/internal/utils"
 )
 
@@ -381,5 +384,170 @@ func (l LogFieldValue) Any() any {
 }
 
 func (l LogFieldValue) appendFieldValue(dst []byte) []byte {
-	return nil
+	switch l.Kind() {
+	case LogFieldValueInt64:
+		return strconv.AppendInt(dst, l.value.(int64), 10)
+	case LogFieldValueUint64:
+		return strconv.AppendUint(dst, l.value.(uint64), 10)
+	case LogFieldValueFloat64:
+		return strconv.AppendFloat(dst, l.value.(float64), 'f', -1, 64)
+	case LogFieldValueBool:
+		return strconv.AppendBool(dst, l.value.(bool))
+	case LogFieldValueTime:
+		return l.value.(time.Time).AppendFormat(dst, DefaultTimeLayout)
+	case LogFieldValueDuration:
+		return append(dst, l.value.(time.Duration).String()...)
+	case LogFieldValueString:
+		return append(dst, l.value.(string)...)
+	case LogFieldValueError:
+		return append(dst, fmt.Sprintf("err: %s", l.value.(error).Error())...)
+	case LogFieldValueAny:
+		return fmt.Append(dst, l.value)
+	case LogFieldValueField:
+		return fmt.Append(dst, l.value)
+	case LogFieldValueFields:
+		return append(dst, l.serializeFields()...)
+	case LogFieldValueInt64s:
+		return append(dst, l.serializeInt64s()...)
+	case LogFieldValueUint64s:
+		return append(dst, l.serializeUint64s()...)
+	case LogFieldValueFloat64s:
+		return append(dst, l.serializeFloat64s()...)
+	case LogFieldValueStrings:
+		return append(dst, l.serializeStrings()...)
+	case LogFieldValueBools:
+		return append(dst, l.serializeBools()...)
+	default:
+		panic(fmt.Sprintf("Invalid FieldValueKind %s", kindStrings[l.Kind()]))
+	}
+	return dst
+}
+
+func (l LogFieldValue) serializeFields() []byte {
+	var buffer []byte
+	fields, ok := l.value.([]LogField)
+	if !ok {
+		return buffer
+	}
+	buffer = append(buffer, serializeArrayBegin)
+	for idx, field := range fields {
+		if idx > 0 {
+			buffer = append(buffer, serializeCommaStep, serializeSpaceSplit)
+		}
+		data, err := field.MarshalText()
+		if err != nil {
+			buffer = fmt.Append(buffer, field)
+			continue
+		}
+		buffer = append(buffer, data...)
+	}
+	return append(buffer, serializeArrayEnd)
+}
+
+func (l LogFieldValue) serializeInt64s() []byte {
+	buffer := bufferPool.Get()
+	defer buffer.Free()
+
+	nums, ok := l.value.([]int64)
+	if !ok {
+		return buffer.Bytes()
+	}
+	buffer.AppendByte(serializeArrayBegin)
+	for idx, num := range nums {
+		if idx > 0 {
+			buffer.AppendByte(serializeCommaStep)
+			buffer.AppendByte(serializeSpaceSplit)
+		}
+		buffer.AppendInt(num)
+	}
+	buffer.AppendByte(serializeArrayEnd)
+
+	return buffer.Bytes()
+}
+
+func (l LogFieldValue) serializeUint64s() []byte {
+	buffer := bufferPool.Get()
+	defer buffer.Free()
+
+	nums, ok := l.value.([]uint64)
+	if !ok {
+		return buffer.Bytes()
+	}
+
+	buffer.AppendByte(serializeArrayBegin)
+	for idx, num := range nums {
+		if idx > 0 {
+			buffer.AppendByte(serializeCommaStep)
+			buffer.AppendByte(serializeSpaceSplit)
+		}
+		buffer.AppendUint(num)
+	}
+	buffer.AppendByte(serializeArrayEnd)
+
+	return buffer.Bytes()
+}
+
+func (l LogFieldValue) serializeFloat64s() []byte {
+	buffer := bufferPool.Get()
+	defer buffer.Free()
+
+	nums, ok := l.value.([]float64)
+	if !ok {
+		return buffer.Bytes()
+	}
+
+	buffer.AppendByte(serializeArrayBegin)
+	for idx, num := range nums {
+		if idx > 0 {
+			buffer.AppendByte(serializeCommaStep)
+			buffer.AppendByte(serializeSpaceSplit)
+		}
+		buffer.AppendFloat(num, 64)
+	}
+	buffer.AppendByte(serializeArrayEnd)
+
+	return buffer.Bytes()
+}
+
+// string 可以使用 strings.Builder 构建
+func (l LogFieldValue) serializeStrings() []byte {
+	var builder strings.Builder
+	strs, ok := l.value.([]string)
+	if !ok {
+		return nil
+	}
+
+	builder.WriteByte(serializeArrayBegin)
+	for idx, str := range strs {
+		if idx > 0 {
+			builder.WriteByte(serializeCommaStep)
+			builder.WriteByte(serializeSpaceSplit)
+		}
+		builder.WriteString(str)
+	}
+	builder.WriteByte(serializeArrayEnd)
+
+	return []byte(builder.String())
+}
+
+func (l LogFieldValue) serializeBools() []byte {
+	buffer := bufferPool.Get()
+	defer buffer.Free()
+
+	bools, ok := l.value.([]bool)
+	if !ok {
+		return nil
+	}
+
+	buffer.AppendByte(serializeArrayBegin)
+	for idx, boolVal := range bools {
+		if idx > 0 {
+			buffer.AppendByte(serializeCommaStep)
+			buffer.AppendByte(serializeSpaceSplit)
+		}
+		buffer.AppendBool(boolVal)
+	}
+	buffer.AppendByte(serializeArrayEnd)
+
+	return buffer.Bytes()
 }

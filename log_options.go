@@ -5,31 +5,23 @@ var (
 	_ Options = (*optionFunc)(nil)
 )
 
-type TextOptions struct {
-	// 文本格式输出前缀
-	TextPrefix string
-	// 日志输出格式标志
-	TextFlag LTextFlag
-}
-
-type JSONOptions struct {
-	// 一些默认字段的key
-	TimeEncodeKey    string
-	SourceEncodeKey  string
-	LevelEncodeKey   string
-	MessageEncodeKey string
-	FieldEncodeKey   string
-}
-
 type LogOptions struct {
 	// 输出日志等级
-	Level LogLevel
+	Level LogLevel `json:"level"`
 	// 日期输出格式
-	Layout string
-	// 文本日志控制
-	TextConf *TextOptions
-	// JSON日志配置
-	JSONConf *JSONOptions
+	Layout string `json:"layout"`
+
+	// 文本格式输出前缀
+	TextPrefix string `json:"text_prefix"`
+	// 日志输出格式标志
+	TextFlag LTextFlag `json:"text_flag"`
+
+	// Json格式一些默认字段的key
+	TimeEncodeKey    string `json:"time_encode_key"`
+	SourceEncodeKey  string `json:"source_encode_key"`
+	LevelEncodeKey   string `json:"level_encode_key"`
+	MessageEncodeKey string `json:"message_encode_key"`
+	FieldEncodeKey   string `json:"field_encode_key"`
 }
 
 // Options Option模式接口
@@ -55,14 +47,14 @@ func WithLevel(level LogLevel) Options {
 // WithPrefix 设置文本日志前缀
 func WithPrefix(prefix string) Options {
 	return optionFunc(func(logOptions *LogOptions) {
-		logOptions.TextConf.TextPrefix = prefix
+		logOptions.TextPrefix = prefix
 	})
 }
 
-// WithTextConf 设置文本日志相关配置
-func WithTextConf(conf *TextOptions) Options {
+// WithTextFlag 设置文本日志相关配置
+func WithTextFlag(flag LTextFlag) Options {
 	return optionFunc(func(logOptions *LogOptions) {
-		logOptions.TextConf = conf
+		logOptions.TextFlag = flag
 	})
 }
 
@@ -73,9 +65,37 @@ func WithLayout(layout string) Options {
 	})
 }
 
-// WithJsonConf 设置Json配置
-func WithJsonConf(conf *JSONOptions) Options {
+// WithTimeEncodeKey 设置Json key
+func WithTimeEncodeKey(key string) Options {
 	return optionFunc(func(logOptions *LogOptions) {
-		logOptions.JSONConf = conf
+		logOptions.TimeEncodeKey = key
+	})
+}
+
+// WithSourceEncodeKey 设置Json key
+func WithSourceEncodeKey(key string) Options {
+	return optionFunc(func(logOptions *LogOptions) {
+		logOptions.SourceEncodeKey = key
+	})
+}
+
+// WithLevelEncodeKey 设置Json key
+func WithLevelEncodeKey(key string) Options {
+	return optionFunc(func(logOptions *LogOptions) {
+		logOptions.LevelEncodeKey = key
+	})
+}
+
+// WithMessageEncodeKey 设置Json key
+func WithMessageEncodeKey(key string) Options {
+	return optionFunc(func(logOptions *LogOptions) {
+		logOptions.MessageEncodeKey = key
+	})
+}
+
+// WithFieldEncodeKey 设置Json key
+func WithFieldEncodeKey(key string) Options {
+	return optionFunc(func(logOptions *LogOptions) {
+		logOptions.FieldEncodeKey = key
 	})
 }
