@@ -421,7 +421,7 @@ func (l *LogFileRollover) loadFileList() ([]*LogFileMeta, error) {
 			continue
 		}
 		// 解析日志名
-		if fileTime, err := utils.TimeFromFileName(filename, ext, prefix, backupTimeFormat); err == nil {
+		if fileTime, err := utils.TimeFromFileName(fileInfo.Name(), prefix, ext, backupTimeFormat); err == nil {
 			// 未压缩日志
 			logFileMetas = append(logFileMetas, &LogFileMeta{
 				Time:     fileTime,
@@ -429,7 +429,7 @@ func (l *LogFileRollover) loadFileList() ([]*LogFileMeta, error) {
 			})
 			continue
 		}
-		if fileTime, err := utils.TimeFromFileName(filename, ext, prefix, ext+compressSuffix); err == nil {
+		if fileTime, err := utils.TimeFromFileName(fileInfo.Name(), prefix, ext, ext+compressSuffix); err == nil {
 			// 已经压缩
 			logFileMetas = append(logFileMetas, &LogFileMeta{
 				Time:     fileTime,
